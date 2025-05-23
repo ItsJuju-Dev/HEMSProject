@@ -1,455 +1,746 @@
-<!DOCTYPE html>
-<html lang="en">
+@extends('layouts.app')
+@section('title', 'Invoice - ' . $order->event->name)
+@push('styles')
+    <style>
+        .countdown {
+            font-family: monospace;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ef4444;
+            font-variant-numeric: tabular-nums;
+        }
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HEMS - Invoice</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
+        .copy-btn {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
 
-<body class="bg-gray-50">
-    <!-- Navigation Bar -->
-    <nav class="bg-white shadow-sm py-4 px-6 flex justify-between items-center">
-        <!-- Logo and Tagline -->
-        <div class="flex items-center">
-            <div class="mr-2">
-                <img src="https://placehold.co/60x60/777/fff?text=HEMS" alt="HEMS Logo"
-                    class="h-14 transform -rotate-12">
-            </div>
-            <div>
-                <h1 class="font-bold text-xl">HEMS</h1>
-                <p class="text-sm">Bringing events to life!</p>
-            </div>
-        </div>
+        .copy-btn:hover {
+            color: #3b82f6;
+        }
 
-        <!-- Navigation Links -->
-        <div class="hidden md:flex items-center space-x-6">
-            <a href="#" class="text-lg">Explore</a>
-            <a href="#" class="text-lg">Favourite</a>
-            <a href="#" class="text-lg">My Tickets</a>
-            <a href="#" class="text-lg">Sign In</a>
-            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                <i class="fas fa-user text-gray-500"></i>
-            </div>
-        </div>
-    </nav>
+        .clipboard-copied {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #10b981;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: none;
+            z-index: 50;
+        }
 
-    <!-- Booking Progress -->
-    <div class="container mx-auto px-4 py-6">
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-2xl font-bold">Payment Complete</h1>
-            <div class="hidden md:block">
-                <ol class="flex items-center">
-                    <li class="relative flex items-center text-gray-500">
-                        <span class="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center mr-2">
-                            <i class="fas fa-check text-sm"></i>
-                        </span>
-                        <span>Select Seats</span>
-                        <div class="h-0.5 bg-blue-600 w-12 mx-4"></div>
-                    </li>
-                    <li class="relative flex items-center text-gray-500">
-                        <span class="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center mr-2">
-                            <i class="fas fa-check text-sm"></i>
-                        </span>
-                        <span>Your Details</span>
-                        <div class="h-0.5 bg-blue-600 w-12 mx-4"></div>
-                    </li>
-                    <li class="relative flex items-center text-gray-500">
-                        <span class="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center mr-2">
-                            <i class="fas fa-check text-sm"></i>
-                        </span>
-                        <span>Payment</span>
-                        <div class="h-0.5 bg-blue-600 w-12 mx-4"></div>
-                    </li>
-                    <li class="relative flex items-center text-blue-600 font-medium">
-                        <span class="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center mr-2">
-                            <i class="fas fa-check text-sm"></i>
-                        </span>
-                        <span>Confirmation</span>
-                    </li>
-                </ol>
-            </div>
-        </div>
+        .action-button {
+            transition: all 0.2s ease;
+        }
 
-        <!-- Success Message -->
-        <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-8 flex items-center">
-            <i class="fas fa-check-circle text-green-500 mr-3 text-xl"></i>
-            <div>
-                <p class="font-medium text-green-700">Your payment has been successfully processed</p>
-                <p class="text-sm text-green-600">Your e-tickets have been sent to your email.</p>
-            </div>
-        </div>
-    </div>
+        .action-button:hover {
+            transform: translateY(-2px);
+        }
 
-    <div class="container mx-auto px-4 pb-12">
-        <!-- Invoice Container -->
-        <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden mb-8">
-            <!-- Invoice Header -->
-            <div class="p-6 border-b border-gray-200">
-                <div class="flex flex-col md:flex-row justify-between items-center">
-                    <div class="flex items-center mb-4 md:mb-0">
-                        <div class="mr-2">
-                            <img src="https://placehold.co/60x60/777/fff?text=HEMS" alt="HEMS Logo"
-                                class="h-14 transform -rotate-12">
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            background-color: #f9fafb;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .ticket-card {
+            border-left: 4px solid #3b82f6;
+            transition: all 0.3s ease;
+        }
+
+        .ticket-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        .status-badge.pending {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-badge.paid {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-badge.failed {
+            background-color: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .payment-code {
+            font-family: monospace;
+            background-color: #eff6ff;
+            border: 1px solid #dbeafe;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            font-size: 1.25rem;
+            letter-spacing: 0.05em;
+        }
+
+        .step-item {
+            position: relative;
+            padding-left: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .step-number {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 1.75rem;
+            height: 1.75rem;
+            background-color: #3b82f6;
+            color: white;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .tabs-container {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 1.5rem;
+        }
+
+        .tab {
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+        }
+
+        .wide-container {
+            width: 100%;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        @media (max-width: 640px) {
+            .wide-container {
+                padding-left: 0.75rem;
+                padding-right: 0.75rem;
+            }
+        }
+    </style>
+@endpush
+
+@section('content')
+    <div class="bg-gray-50 min-h-screen py-8">
+        <div class="wide-container">
+            @if (session('error'))
+                <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-lg shadow-sm relative"
+                    role="alert">
+                    <div class="flex">
+                        <div class="py-1">
+                            <i class="fas fa-exclamation-circle mr-3"></i>
                         </div>
                         <div>
-                            <h1 class="font-bold text-xl">HEMS</h1>
-                            <p class="text-sm">Bringing events to life!</p>
+                            <p>{{ session('error') }}</p>
                         </div>
                     </div>
-                    <div class="text-center md:text-right">
-                        <h2 class="text-xl font-bold">INVOICE</h2>
-                        <p class="text-gray-600">Invoice #: HEMS-20250422-47391</p>
-                        <p class="text-gray-600">Date: April 22, 2025</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Invoice Body -->
-            <div class="p-6">
-                <!-- Customer & Event Information -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    <!-- Customer Information -->
-                    <div>
-                        <h3 class="text-sm font-medium text-gray-500 mb-2">BILLED TO</h3>
-                        <p class="font-medium">Ahmad Rahimi</p>
-                        <p>ahmad.rahimi@example.com</p>
-                        <p>+60 12 3456 7890</p>
-                    </div>
-                    <!-- Event Information -->
-                    <div>
-                        <h3 class="text-sm font-medium text-gray-500 mb-2">EVENT DETAILS</h3>
-                        <p class="font-medium">Music Festival 2025</p>
-                        <p>Kuala Lumpur Convention Center</p>
-                        <p>May 15, 2025 • 7:30 PM</p>
-                        <p>Order ID: ORD-734918</p>
-                    </div>
-                </div>
-
-                <!-- Items Table -->
-                <div class="overflow-x-auto mb-6">
-                    <table class="w-full">
-                        <thead>
-                            <tr class="bg-gray-100">
-                                <th class="py-3 px-4 text-left font-medium">Description</th>
-                                <th class="py-3 px-4 text-center font-medium">Quantity</th>
-                                <th class="py-3 px-4 text-right font-medium">Unit Price</th>
-                                <th class="py-3 px-4 text-right font-medium">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200">
-                            <tr>
-                                <td class="py-3 px-4">
-                                    <div class="font-medium">VIP Tickets</div>
-                                    <div class="text-sm text-gray-600">Seats: A1, A2</div>
-                                </td>
-                                <td class="py-3 px-4 text-center">2</td>
-                                <td class="py-3 px-4 text-right">RM 200.00</td>
-                                <td class="py-3 px-4 text-right">RM 400.00</td>
-                            </tr>
-                            <tr>
-                                <td class="py-3 px-4">
-                                    <div class="font-medium">Regular Tickets</div>
-                                    <div class="text-sm text-gray-600">Seats: B5, B6</div>
-                                </td>
-                                <td class="py-3 px-4 text-center">2</td>
-                                <td class="py-3 px-4 text-right">RM 95.00</td>
-                                <td class="py-3 px-4 text-right">RM 190.00</td>
-                            </tr>
-                            <tr>
-                                <td class="py-3 px-4">
-                                    <div class="font-medium">Booking Fee</div>
-                                </td>
-                                <td class="py-3 px-4 text-center">1</td>
-                                <td class="py-3 px-4 text-right">RM 20.00</td>
-                                <td class="py-3 px-4 text-right">RM 20.00</td>
-                            </tr>
-                            <tr>
-                                <td class="py-3 px-4">
-                                    <div class="font-medium">Processing Fee</div>
-                                </td>
-                                <td class="py-3 px-4 text-center">1</td>
-                                <td class="py-3 px-4 text-right">RM 35.00</td>
-                                <td class="py-3 px-4 text-right">RM 35.00</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Total Calculation -->
-                <div class="w-full md:w-1/2 ml-auto">
-                    <div class="flex justify-between py-2">
-                        <span class="font-medium">Subtotal</span>
-                        <span>RM 645.00</span>
-                    </div>
-                    <div class="flex justify-between py-2">
-                        <span class="font-medium">Tax (6%)</span>
-                        <span>RM 39.00</span>
-                    </div>
-                    <div class="flex justify-between py-2 border-t border-gray-200 text-lg font-bold">
-                        <span>Total</span>
-                        <span>RM 684.00</span>
-                    </div>
-                    <div class="flex justify-between py-2 text-sm text-gray-600">
-                        <span>Payment Method</span>
-                        <span>BCA Virtual Account</span>
-                    </div>
-                    <div class="flex justify-between py-2 text-sm text-gray-600">
-                        <span>Payment Status</span>
-                        <span class="text-green-600 font-medium">PAID</span>
-                    </div>
-                </div>
-
-                <!-- Notes -->
-                <div class="mt-8 border-t border-gray-200 pt-6">
-                    <h3 class="text-sm font-medium text-gray-500 mb-2">NOTES</h3>
-                    <p class="text-sm text-gray-600 mb-4">
-                        Thank you for your purchase. This is an official receipt for your payment.
-                        Please keep this for your records.
-                    </p>
-                    <p class="text-sm text-gray-600">
-                        For any inquiries regarding your order, please contact our customer support at
-                        <a href="mailto:support@hems.my" class="text-blue-600">support@hems.my</a>
-                        or call us at +60 3 9876 5432.
-                    </p>
-                </div>
-            </div>
-
-            <!-- Invoice Footer -->
-            <div class="bg-gray-50 p-6 flex flex-col md:flex-row justify-between items-center">
-                <div class="text-center md:text-left mb-4 md:mb-0">
-                    <p class="text-sm text-gray-600">HEMS Entertainment Sdn Bhd</p>
-                    <p class="text-sm text-gray-600">Level 30, Tower 1, Petronas Twin Towers</p>
-                    <p class="text-sm text-gray-600">Kuala Lumpur, 50088, Malaysia</p>
-                </div>
-                <div class="flex flex-col md:flex-row items-center">
-                    <button
-                        class="mb-3 md:mb-0 md:mr-4 bg-blue-600 text-white py-2 px-6 rounded-lg flex items-center hover:bg-blue-700">
-                        <i class="fas fa-download mr-2"></i> Download Invoice
-                    </button>
-                    <button class="bg-gray-200 text-gray-800 py-2 px-6 rounded-lg flex items-center hover:bg-gray-300">
-                        <i class="fas fa-print mr-2"></i> Print
+                    <button onclick="this.parentElement.style.display='none'"
+                        class="absolute top-0 right-0 mt-4 mr-4 text-red-500 hover:text-red-700">
+                        <i class="fas fa-times"></i>
                     </button>
                 </div>
+            @endif
+
+            @if (session('success'))
+                <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-lg shadow-sm">
+                    <p>{{ session('success') }}</p>
+                </div>
+            @endif
+
+            @if ($isExpired && $order->payment_status == 'pending')
+                <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-lg shadow-sm">
+                    <p class="font-bold">Payment Expired</p>
+                    <p>Your payment deadline has passed. Please make a new order.</p>
+                </div>
+            @endif
+
+            <div class="card mb-8">
+                <div class="bg-white p-6 rounded-t-lg border-b border-gray-200">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between">
+                        <div class="mb-4 md:mb-0">
+                            <div class="text-sm text-gray-600 mb-1">Order #{{ $order->reference }}</div>
+                            <h1 class="text-2xl font-bold">{{ $order->event->name }}</h1>
+                            <div class="flex items-center mt-2">
+                                <i class="far fa-calendar-alt text-gray-500 mr-2"></i>
+                                <span
+                                    class="text-gray-600">{{ \Carbon\Carbon::parse($order->event->event_date)->format('F d, Y') }}
+                                    • {{ \Carbon\Carbon::parse($order->event->event_time)->format('H:i') }}</span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <div
+                                class="
+                                status-badge
+                                {{ $order->payment_status == 'paid' ? 'paid' : ($order->payment_status == 'pending' ? 'pending' : 'failed') }}
+                            ">
+                                @if ($order->payment_status == 'paid')
+                                    <i class="fas fa-check-circle mr-1"></i> Paid
+                                @elseif($order->payment_status == 'pending')
+                                    <i class="fas fa-clock mr-1"></i> Awaiting Payment
+                                @else
+                                    <i class="fas fa-times-circle mr-1"></i> {{ ucfirst($order->payment_status) }}
+                                @endif
+                            </div>
+                            <div class="text-lg font-bold mt-2">Rp {{ number_format($order->total_amount, 0, ',', '.') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @if ($order->payment_status == 'pending' && !$isExpired)
+                    <div class="bg-yellow-50 p-4 flex items-start border-b border-yellow-100">
+                        <div class="text-yellow-800">
+                            <div class="font-medium mb-1">Payment Deadline:</div>
+                            <div id="expiry-time" class="font-medium"
+                                data-expires="{{ \Carbon\Carbon::parse($order->expire_time)->format('c') }}">
+                                {{ \Carbon\Carbon::parse($order->expire_time)->format('d M Y, H:i') }}
+                            </div>
+                            <div id="countdown" class="countdown mt-1"></div>
+                        </div>
+                    </div>
+                @endif
+
+                <div class="p-6" x-data="{ activeTab: 'details' }">
+                    <div class="tabs-container">
+                        <div class="tab" :class="{ 'active': activeTab === 'details' }" @click="activeTab = 'details'">
+                            <i class="fas fa-info-circle mr-2"></i> Order Details
+                        </div>
+                        @if ($order->payment_status == 'pending' && !$isExpired)
+                            <div class="tab" :class="{ 'active': activeTab === 'payment' }"
+                                @click="activeTab = 'payment'">
+                                <i class="fas fa-credit-card mr-2"></i> Payment Instructions
+                            </div>
+                        @endif
+                        @if ($order->payment_status == 'paid')
+                            <div class="tab" :class="{ 'active': activeTab === 'tickets' }"
+                                @click="activeTab = 'tickets'">
+                                <i class="fas fa-ticket-alt mr-2"></i> E-Tickets
+                            </div>
+                        @endif
+                    </div>
+
+                    <div x-show="activeTab === 'details'">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                            <div>
+                                <h3 class="font-medium text-gray-700 mb-3">Buyer Information</h3>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <div class="mb-2">
+                                        <div class="text-sm text-gray-500">Name</div>
+                                        <div>{{ $order->user->name }}</div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <div class="text-sm text-gray-500">Email</div>
+                                        <div>{{ $order->user->email }}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm text-gray-500">WhatsApp Number</div>
+                                        <div>{{ $order->user->no_whatsapp }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="font-medium text-gray-700 mb-3">Event Information</h3>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <div class="mb-2">
+                                        <div class="text-sm text-gray-500">Venue</div>
+                                        <div>{{ $order->event->venue->name }}</div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <div class="text-sm text-gray-500">Date</div>
+                                        <div>{{ \Carbon\Carbon::parse($order->event->event_date)->format('F d, Y') }}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm text-gray-500">Time</div>
+                                        <div>{{ \Carbon\Carbon::parse($order->event->event_time)->format('H:i') }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="font-medium text-gray-700 mb-3">Payment Information</h3>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <div class="mb-2">
+                                        <div class="text-sm text-gray-500">Payment Method</div>
+                                        <div>{{ $order->payment_method }}</div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <div class="text-sm text-gray-500">Payment Status</div>
+                                        <div>
+                                            @if ($order->payment_status == 'paid')
+                                                <span class="text-green-600">Payment Successful</span>
+                                            @elseif($order->payment_status == 'pending')
+                                                <span class="text-yellow-600">Awaiting Payment</span>
+                                            @else
+                                                <span class="text-red-600">{{ ucfirst($order->payment_status) }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm text-gray-500">Order Date</div>
+                                        <div>{{ \Carbon\Carbon::parse($order->created_at)->format('d F Y, H:i') }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h3 class="font-medium text-gray-700 mb-3">Purchase Details</h3>
+                        <div class="bg-gray-50 rounded-lg overflow-hidden mb-6">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-100">
+                                    <tr>
+                                        <th scope="col"
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Item
+                                        </th>
+                                        <th scope="col"
+                                            class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Quantity
+                                        </th>
+                                        <th scope="col"
+                                            class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Price
+                                        </th>
+                                        <th scope="col"
+                                            class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Total
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <td class="px-6 py-4">
+                                            <div class="font-medium text-gray-900">{{ $order->event->name }} Tickets</div>
+                                            <div class="text-sm text-gray-500">
+                                                @if ($order->items->count() > 0)
+                                                    Seats: {{ $order->items->pluck('seat_label')->implode(', ') }}
+                                                @endif
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-center">
+                                            {{ $order->ticket_count }}
+                                        </td>
+                                        <td class="px-6 py-4 text-right">
+                                            Rp {{ number_format($order->event->ticket_price, 0, ',', '.') }}
+                                        </td>
+                                        <td class="px-6 py-4 text-right">
+                                            @php
+                                                $subtotal = $order->event->ticket_price * $order->ticket_count;
+                                            @endphp
+                                            Rp {{ number_format($subtotal, 0, ',', '.') }}
+                                        </td>
+                                    </tr>
+
+                                    @if ($order->ticket_count > 5)
+                                        @php
+                                            $discountAmount = 50000 * $order->ticket_count;
+                                        @endphp
+                                        <tr class="bg-green-50">
+                                            <td class="px-6 py-4">
+                                                <div class="font-medium text-green-700">
+                                                    <i class="fas fa-tag mr-1"></i> Special Discount
+                                                </div>
+                                                <div class="text-sm text-green-600">
+                                                    Rp 50.000 discount per ticket for orders over 5 tickets
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 text-center text-green-600">
+                                                {{ $order->ticket_count }}
+                                            </td>
+                                            <td class="px-6 py-4 text-right text-green-600">
+                                                -Rp 50.000
+                                            </td>
+                                            <td class="px-6 py-4 text-right text-green-600 font-medium">
+                                                -Rp {{ number_format($discountAmount, 0, ',', '.') }}
+                                            </td>
+                                        </tr>
+                                    @endif
+
+                                    @if ($order->fee > 0)
+                                        <tr>
+                                            <td class="px-6 py-4">
+                                                <div class="font-medium text-gray-900">Service Fee</div>
+                                            </td>
+                                            <td class="px-6 py-4 text-center">1</td>
+                                            <td class="px-6 py-4 text-right">
+                                                Rp {{ number_format($order->fee, 0, ',', '.') }}
+                                            </td>
+                                            <td class="px-6 py-4 text-right">
+                                                Rp {{ number_format($order->fee, 0, ',', '.') }}
+                                            </td>
+                                        </tr>
+                                    @endif
+                                </tbody>
+                                <tfoot class="bg-gray-50">
+                                    <tr>
+                                        <td colspan="2" class="px-6 py-4"></td>
+                                        <td class="px-6 py-4 text-right font-medium">Total</td>
+                                        <td class="px-6 py-4 text-right font-bold">
+                                            Rp {{ number_format($order->total_amount, 0, ',', '.') }}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        @if ($order->ticket_count > 5)
+                            <div class="bg-green-50 border border-green-100 p-4 rounded-lg mb-6">
+                                <div class="flex items-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600 mt-0.5 mr-2"
+                                        fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    <div>
+                                        <p class="text-green-700 font-medium">Special Offer Applied</p>
+                                        <p class="text-green-600 text-sm mt-1">
+                                            You saved Rp {{ number_format(50000 * $order->ticket_count, 0, ',', '.') }}
+                                            with our discount offer!
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
+                        {{-- <div class="flex justify-center">
+                            <button
+                                class="bg-blue-600 text-white py-2 px-6 rounded-lg flex items-center hover:bg-blue-700 action-button">
+                                <i class="fas fa-download mr-2"></i> Download Invoice
+                            </button>
+                        </div> --}}
+                    </div>
+
+                    @if ($order->payment_status == 'pending' && !$isExpired)
+                        <div x-show="activeTab === 'payment'">
+                            <div class="text-center mb-6">
+                                <h3 class="text-xl font-medium text-gray-700">Please Complete Your Payment</h3>
+                                <p class="text-gray-600 mt-2">Make payment according to the following instructions</p>
+                            </div>
+
+                            @if (isset($order->pay_code) && $order->pay_code)
+                                <div class="bg-gray-50 p-5 rounded-lg mb-6">
+                                    <div class="text-center">
+                                        <div class="text-gray-700 font-medium mb-2">Payment Code / Virtual Account Number
+                                        </div>
+                                        <div class="flex items-center justify-center">
+                                            <div class="payment-code mr-2">{{ $order->pay_code }}</div>
+                                            <span class="copy-btn" data-clipboard="{{ $order->pay_code }}"
+                                                title="Copy">
+                                                <i class="far fa-copy text-xl text-blue-500"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
+                            @if (isset($order->qr_image) && $order->qr_image)
+                                <div class="bg-gray-50 p-5 rounded-lg mb-6">
+                                    <div class="text-center">
+                                        <div class="text-gray-700 font-medium mb-2">Payment QR Code</div>
+                                        <div class="flex flex-col items-center">
+                                            <img src="{{ $order->qr_image }}" alt="Payment QR Code"
+                                                class="h-48 w-48 mx-auto border p-2 bg-white rounded">
+                                            <p class="text-sm text-gray-600 mt-2">Scan this QR code to make payment</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
+                            @if (isset($transactionDetails['data']['instructions']))
+                                <div class="mb-6">
+                                    <h3 class="font-medium text-gray-700 mb-4">How to Pay via
+                                        {{ $order->payment_method }}</h3>
+
+                                    <div class="bg-gray-50 rounded-lg p-5">
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            @foreach ($transactionDetails['data']['instructions'] as $instruction)
+                                                <div>
+                                                    <h4 class="font-medium text-gray-800 mb-3">{{ $instruction['title'] }}
+                                                    </h4>
+                                                    <ol class="space-y-3">
+                                                        @foreach ($instruction['steps'] as $index => $step)
+                                                            <li class="step-item">
+                                                                <div class="step-number">{{ $index + 1 }}</div>
+                                                                <div>{!! $step !!}</div>
+                                                            </li>
+                                                        @endforeach
+                                                    </ol>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
+                            @if (isset($order->checkout_url) && $order->checkout_url)
+                                <div class="flex justify-center mt-8">
+                                    <a href="{{ $order->checkout_url }}" target="_blank"
+                                        class="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition action-button shadow-md">
+                                        <i class="fas fa-credit-card mr-2"></i> Continue to Payment
+                                    </a>
+                                </div>
+                            @endif
+                        </div>
+                    @endif
+
+                    @if ($order->payment_status == 'paid')
+                        <div x-show="activeTab === 'tickets'">
+                            <div class="text-center mb-6">
+                                <h3 class="text-xl font-medium text-gray-700">Your E-Tickets</h3>
+                                <p class="text-gray-600 mt-2">Show these e-tickets during check-in at the event location
+                                </p>
+                            </div>
+
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                @foreach ($order->items as $index => $item)
+                                    <div class="ticket-card bg-gray-50 rounded-lg overflow-hidden">
+                                        <div class="p-5">
+                                            <div class="flex flex-col md:flex-row gap-6">
+                                                <div class="flex-grow">
+                                                    <div class="flex justify-between items-start mb-4">
+                                                        <div>
+                                                            <h3 class="font-bold text-lg text-gray-800">
+                                                                {{ $order->event->name }}</h3>
+                                                            <div
+                                                                class="bg-blue-100 text-blue-800 text-sm font-bold rounded-full px-3 py-1 inline-block mt-2">
+                                                                SEAT {{ $item->seat_label }}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="space-y-2">
+                                                        <div class="flex items-center">
+                                                            <i
+                                                                class="far fa-calendar-alt text-blue-500 mr-3 w-5 text-center"></i>
+                                                            <span>{{ \Carbon\Carbon::parse($order->event->event_date)->format('F d, Y') }}</span>
+                                                        </div>
+                                                        <div class="flex items-center">
+                                                            <i class="far fa-clock text-blue-500 mr-3 w-5 text-center"></i>
+                                                            <span>{{ \Carbon\Carbon::parse($order->event->event_time)->format('H:i') }}</span>
+                                                        </div>
+                                                        <div class="flex items-center">
+                                                            <i
+                                                                class="fas fa-map-marker-alt text-blue-500 mr-3 w-5 text-center"></i>
+                                                            <span>{{ $order->event->venue->name }}</span>
+                                                        </div>
+                                                        <div class="flex items-center">
+                                                            <i
+                                                                class="fas fa-ticket-alt text-blue-500 mr-3 w-5 text-center"></i>
+                                                            <span>TICKET ID:
+                                                                {{ $item->seat_label }}-{{ substr($order->reference, -5) }}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {{-- <div class="flex flex-col items-center justify-center">
+                                                    <div class="bg-white p-3 rounded border border-gray-200 mb-2">
+                                                        <img src="https://placehold.co/200x200/777/fff?text=QR+CODE"
+                                                            alt="QR Code" class="h-32 w-32">
+                                                    </div>
+                                                    <p class="text-xs text-gray-500">Scan for entry</p>
+                                                </div> --}}
+                                                <div class="flex flex-col items-center justify-center">
+                                                    <div class="bg-white p-3 rounded border border-gray-200 mb-2">
+                                                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ $item->seat_label }}-{{ substr($order->reference, -5) }}"
+                                                            alt="QR Code Ticket" class="h-32 w-32 mt-2">
+                                                    </div>
+                                                    <p class="text-xs text-gray-500">Scan for entry</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+
+                                @if (count($order->items) == 0)
+                                    @for ($i = 1; $i <= $order->ticket_count; $i++)
+                                        <div class="ticket-card bg-gray-50 rounded-lg overflow-hidden">
+                                            <div class="p-5">
+                                                <div class="flex flex-col md:flex-row gap-6">
+                                                    <div class="flex-grow">
+                                                        <div class="flex justify-between items-start mb-4">
+                                                            <div>
+                                                                <h3 class="font-bold text-lg text-gray-800">
+                                                                    {{ $order->event->name }}</h3>
+                                                                <div
+                                                                    class="bg-blue-100 text-blue-800 text-sm font-bold rounded-full px-3 py-1 inline-block mt-2">
+                                                                    TICKET #{{ $i }}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="space-y-2">
+                                                            <div class="flex items-center">
+                                                                <i
+                                                                    class="far fa-calendar-alt text-blue-500 mr-3 w-5 text-center"></i>
+                                                                <span>{{ \Carbon\Carbon::parse($order->event->event_date)->format('F d, Y') }}</span>
+                                                            </div>
+                                                            <div class="flex items-center">
+                                                                <i
+                                                                    class="far fa-clock text-blue-500 mr-3 w-5 text-center"></i>
+                                                                <span>{{ \Carbon\Carbon::parse($order->event->event_time)->format('H:i') }}</span>
+                                                            </div>
+                                                            <div class="flex items-center">
+                                                                <i
+                                                                    class="fas fa-map-marker-alt text-blue-500 mr-3 w-5 text-center"></i>
+                                                                <span>{{ $order->event->venue->name }}</span>
+                                                            </div>
+                                                            <div class="flex items-center">
+                                                                <i
+                                                                    class="fas fa-user text-blue-500 mr-3 w-5 text-center"></i>
+                                                                <span>{{ $order->customer_name }}</span>
+                                                            </div>
+                                                            <div class="flex items-center">
+                                                                <i
+                                                                    class="fas fa-ticket-alt text-blue-500 mr-3 w-5 text-center"></i>
+                                                                <span>TICKET ID:
+                                                                    HEMS-{{ $i }}-{{ substr($order->reference, -5) }}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="flex flex-col items-center justify-center">
+                                                        <div class="bg-white p-3 rounded border border-gray-200 mb-2">
+                                                            <img src="https://placehold.co/200x200/777/fff?text=QR+CODE"
+                                                                alt="QR Code" class="h-32 w-32">
+                                                        </div>
+                                                        <p class="text-xs text-gray-500">Scan for entry</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endfor
+                                @endif
+                            </div>
+
+                            {{-- <div class="text-center mt-8">
+                                <button
+                                    class="bg-blue-600 text-white py-2 px-6 rounded-lg flex items-center hover:bg-blue-700 mx-auto action-button">
+                                    <i class="fas fa-print mr-2"></i> Print Tickets
+                                </button>
+                            </div> --}}
+                        </div>
+                    @endif
+                </div>
             </div>
-        </div>
 
-        <!-- E-Tickets Section -->
-        <div class="max-w-4xl mx-auto">
-            <h2 class="text-xl font-bold mb-6">Your E-Tickets</h2>
+            <div class="flex justify-between">
+                <a href="{{ route('detail-event', $order->event->slug) }}" class="text-blue-600 hover:underline">
+                    <span class="flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Back to Event Details
+                    </span>
+                </a>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Ticket 1 -->
-                <div class="bg-white rounded-xl shadow-md overflow-hidden relative">
-                    <div class="bg-gradient-to-r from-blue-600 to-purple-600 h-4"></div>
-                    <div class="p-6">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 class="font-bold text-lg">Music Festival 2025</h3>
-                                <p class="text-gray-600 text-sm">VIP Ticket</p>
-                            </div>
-                            <div class="bg-blue-100 text-blue-800 text-xs font-bold rounded-full px-3 py-1">
-                                SEAT A1
-                            </div>
-                        </div>
-
-                        <div class="mb-4">
-                            <div class="flex items-center mb-2">
-                                <i class="far fa-calendar-alt text-gray-400 mr-2"></i>
-                                <span>May 15, 2025 • 7:30 PM</span>
-                            </div>
-                            <div class="flex items-center">
-                                <i class="fas fa-map-marker-alt text-gray-400 mr-2"></i>
-                                <span>Kuala Lumpur Convention Center</span>
-                            </div>
-                        </div>
-
-                        <div class="flex justify-center mb-4">
-                            <img src="https://placehold.co/200x200/777/fff?text=QR+CODE" alt="QR Code"
-                                class="h-32">
-                        </div>
-
-                        <div class="text-center text-sm text-gray-500">
-                            <p>TICKET ID: VIP-A1-47391</p>
-                            <p>Ahmad Rahimi • +60 12 3456 7890</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Ticket 2 -->
-                <div class="bg-white rounded-xl shadow-md overflow-hidden relative">
-                    <div class="bg-gradient-to-r from-blue-600 to-purple-600 h-4"></div>
-                    <div class="p-6">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 class="font-bold text-lg">Music Festival 2025</h3>
-                                <p class="text-gray-600 text-sm">VIP Ticket</p>
-                            </div>
-                            <div class="bg-blue-100 text-blue-800 text-xs font-bold rounded-full px-3 py-1">
-                                SEAT A2
-                            </div>
-                        </div>
-
-                        <div class="mb-4">
-                            <div class="flex items-center mb-2">
-                                <i class="far fa-calendar-alt text-gray-400 mr-2"></i>
-                                <span>May 15, 2025 • 7:30 PM</span>
-                            </div>
-                            <div class="flex items-center">
-                                <i class="fas fa-map-marker-alt text-gray-400 mr-2"></i>
-                                <span>Kuala Lumpur Convention Center</span>
-                            </div>
-                        </div>
-
-                        <div class="flex justify-center mb-4">
-                            <img src="https://placehold.co/200x200/777/fff?text=QR+CODE" alt="QR Code"
-                                class="h-32">
-                        </div>
-
-                        <div class="text-center text-sm text-gray-500">
-                            <p>TICKET ID: VIP-A2-47392</p>
-                            <p>Ahmad Rahimi • +60 12 3456 7890</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Ticket 3 -->
-                <div class="bg-white rounded-xl shadow-md overflow-hidden relative">
-                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-4"></div>
-                    <div class="p-6">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 class="font-bold text-lg">Music Festival 2025</h3>
-                                <p class="text-gray-600 text-sm">Regular Ticket</p>
-                            </div>
-                            <div class="bg-blue-100 text-blue-800 text-xs font-bold rounded-full px-3 py-1">
-                                SEAT B5
-                            </div>
-                        </div>
-
-                        <div class="mb-4">
-                            <div class="flex items-center mb-2">
-                                <i class="far fa-calendar-alt text-gray-400 mr-2"></i>
-                                <span>May 15, 2025 • 7:30 PM</span>
-                            </div>
-                            <div class="flex items-center">
-                                <i class="fas fa-map-marker-alt text-gray-400 mr-2"></i>
-                                <span>Kuala Lumpur Convention Center</span>
-                            </div>
-                        </div>
-
-                        <div class="flex justify-center mb-4">
-                            <img src="https://placehold.co/200x200/777/fff?text=QR+CODE" alt="QR Code"
-                                class="h-32">
-                        </div>
-
-                        <div class="text-center text-sm text-gray-500">
-                            <p>TICKET ID: REG-B5-47393</p>
-                            <p>Ahmad Rahimi • +60 12 3456 7890</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Ticket 4 -->
-                <div class="bg-white rounded-xl shadow-md overflow-hidden relative">
-                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-4"></div>
-                    <div class="p-6">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 class="font-bold text-lg">Music Festival 2025</h3>
-                                <p class="text-gray-600 text-sm">Regular Ticket</p>
-                            </div>
-                            <div class="bg-blue-100 text-blue-800 text-xs font-bold rounded-full px-3 py-1">
-                                SEAT B6
-                            </div>
-                        </div>
-
-                        <div class="mb-4">
-                            <div class="flex items-center mb-2">
-                                <i class="far fa-calendar-alt text-gray-400 mr-2"></i>
-                                <span>May 15, 2025 • 7:30 PM</span>
-                            </div>
-                            <div class="flex items-center">
-                                <i class="fas fa-map-marker-alt text-gray-400 mr-2"></i>
-                                <span>Kuala Lumpur Convention Center</span>
-                            </div>
-                        </div>
-
-                        <div class="flex justify-center mb-4">
-                            <img src="https://placehold.co/200x200/777/fff?text=QR+CODE" alt="QR Code"
-                                class="h-32">
-                        </div>
-
-                        <div class="text-center text-sm text-gray-500">
-                            <p>TICKET ID: REG-B6-47394</p>
-                            <p>Ahmad Rahimi • +60 12 3456 7890</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="text-center mt-8">
-                <p class="text-gray-600 mb-4">All tickets have been sent to your email address.</p>
-                <a href="#" class="text-blue-600 hover:underline">
-                    <i class="fas fa-arrow-left mr-1"></i> Return to My Tickets
+                <a href="{{ route('user-dashboard') }}" class="text-blue-600 hover:underline">
+                    <span class="flex items-center">
+                        View My Orders
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </span>
                 </a>
             </div>
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="bg-gray-100 py-8">
-        <div class="container mx-auto px-4">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div>
-                    <h3 class="font-bold mb-3">About HEMS</h3>
-                    <ul class="space-y-2">
-                        <li><a href="#" class="text-gray-600 hover:text-black">Our Story</a></li>
-                        <li><a href="#" class="text-gray-600 hover:text-black">How It Works</a></li>
-                        <li><a href="#" class="text-gray-600 hover:text-black">Careers</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h3 class="font-bold mb-3">Help & Support</h3>
-                    <ul class="space-y-2">
-                        <li><a href="#" class="text-gray-600 hover:text-black">FAQ</a></li>
-                        <li><a href="#" class="text-gray-600 hover:text-black">Contact Us</a></li>
-                        <li><a href="#" class="text-gray-600 hover:text-black">Terms of Service</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h3 class="font-bold mb-3">For Organizers</h3>
-                    <ul class="space-y-2">
-                        <li><a href="#" class="text-gray-600 hover:text-black">Create Event</a></li>
-                        <li><a href="#" class="text-gray-600 hover:text-black">Pricing</a></li>
-                        <li><a href="#" class="text-gray-600 hover:text-black">Resources</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h3 class="font-bold mb-3">Connect With Us</h3>
-                    <div class="flex space-x-4 mt-3">
-                        <a href="#" class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                            <i class="fab fa-facebook-f"></i>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                            <i class="fab fa-twitter"></i>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                            <i class="fab fa-instagram"></i>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                            <i class="fab fa-linkedin-in"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
-            <div class="mt-8 pt-6 border-t border-gray-200 text-center">
-                <p>© 2025 HEMS. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
-</body>
+    <div class="clipboard-copied" id="clipboard-notification">
+        <span>Copied to clipboard!</span>
+    </div>
+@endsection
 
-</html>
+@push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const expiryElement = document.getElementById('expiry-time');
+            const countdownElement = document.getElementById('countdown');
+
+            if (expiryElement && countdownElement) {
+                const expiryTime = new Date(expiryElement.dataset.expires).getTime();
+
+                const updateCountdown = () => {
+                    const now = new Date().getTime();
+                    const timeLeft = expiryTime - now;
+
+                    if (timeLeft <= 0) {
+                        countdownElement.innerHTML = 'EXPIRED';
+                        setTimeout(() => window.location.reload(), 3000);
+                        return;
+                    }
+
+                    const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+                    countdownElement.innerHTML =
+                        String(hours).padStart(2, '0') + ':' +
+                        String(minutes).padStart(2, '0') + ':' +
+                        String(seconds).padStart(2, '0');
+
+                    if (timeLeft < 300000) {
+                        countdownElement.style.color = '#ef4444';
+                        countdownElement.style.animation = 'pulse 1s infinite';
+                    }
+                };
+
+                updateCountdown();
+                setInterval(updateCountdown, 1000);
+            }
+
+            document.querySelectorAll('.copy-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const textToCopy = button.dataset.clipboard;
+                    navigator.clipboard.writeText(textToCopy).then(() => {
+                        const notification = document.getElementById(
+                            'clipboard-notification');
+                        notification.style.display = 'block';
+                        setTimeout(() => {
+                            notification.style.display = 'none';
+                        }, 2000);
+                    });
+                });
+            });
+        });
+    </script>
+@endpush
