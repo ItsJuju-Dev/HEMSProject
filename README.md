@@ -5,7 +5,7 @@ ticketingevent-apps Website Projects
 ## Authors
 
 -   [@ItsJuJu-Dev](https://github.com/ItsJuJu-Dev)
--   [@gekky27](https://github.com/gekky27s)
+-   [@gekky27](https://github.com/gekky27)
 
 ## Deployment
 
