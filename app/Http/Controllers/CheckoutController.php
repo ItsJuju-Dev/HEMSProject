@@ -35,6 +35,9 @@ class CheckoutController extends Controller
 
         $ticketCount = $request->input('ticket_count', 1);
         $totalPrice = $event->ticket_price * $ticketCount;
+        if ($ticketCount > 5) {
+            $totalPrice = $totalPrice - (50000 * $ticketCount);
+        }
         $userReservedSeats = $this->seatReservationService->getUserReservedSeats($event->id);
         $eventSeats = EventSeat::where('event_id', $event->id)
             ->with('venueSeat')
@@ -103,7 +106,7 @@ class CheckoutController extends Controller
                 'requested_ids' => $venueSeatIds,
                 'valid_count' => $validSeats
             ]);
-            return back()->with('error', 'Pemilihan kursi tidak valid. Mohon coba lagi.');
+            return back()->with('error', 'seat selected are invalid. try again.');
         }
 
         $reservationSuccess = $this->seatReservationService->reserveSeats($event->id, $venueSeatIds, [
@@ -146,6 +149,11 @@ class CheckoutController extends Controller
             })
             ->groupBy('group');
 
+        $originalPrice = $ticketCount * $event->ticket_price;
+        $hasDiscount = $ticketCount > 5;
+        $discountAmount = $hasDiscount ? 50000 * $ticketCount : 0;
+        $totalPrice = $originalPrice - $discountAmount;
+
         return view('checkout.payment', compact(
             'event',
             'selectedSeats',
@@ -180,6 +188,12 @@ class CheckoutController extends Controller
         $selectedSeats = $reservationData['selected_seats'] ?? [];
         $ticketCount = $reservationData['ticket_count'] ?? 0;
         $totalPrice = $reservationData['total_price'] ?? 0;
+        if ($ticketCount > 5) {
+            $originalPrice = $ticketCount * $event->ticket_price;
+            $discountAmount = 50000 * $ticketCount;
+            $totalPrice = $originalPrice - $discountAmount;
+        }
+
         $referenceId = 'TICKET-' . strtoupper(Str::random(8)) . '-' . time();
         $paymentCode = $request->input('payment_method');
         $fee = $this->tripayController->calculateFee($paymentCode, $totalPrice);
@@ -197,24 +211,36 @@ class CheckoutController extends Controller
         }
         $seatInfo = implode(', ', $seatDescriptions);
         $description = "Tiket Event {$event->name} - {$event->event_date} {$event->event_time} - Kursi: {$seatInfo}";
-        $hargaTotal = $event->ticket_price * $ticketCount;
         $tripayData = [
             'method' => $paymentCode,
             'merchant_ref' => $referenceId,
-            'amount' => $hargaTotal,
+            'amount' => $totalPrice,
             'customer_name' => auth()->user()->name,
             'customer_email' => auth()->user()->email,
             'customer_phone' => auth()->user()->no_whatsapp,
-            'order_items' => [
-                [
-                    'name' => $event->name,
-                    'price' =>  $event->ticket_price,
-                    'quantity' => $ticketCount,
+            'order_items' => $ticketCount > 5
+                ? [
+                    [
+                        'name' => $event->name,
+                        'price' => $event->ticket_price,
+                        'quantity' => $ticketCount,
+                    ],
+                    [
+                        'name' => 'Diskon pembelian > 5 tiket',
+                        'price' => -50000 * $ticketCount,
+                        'quantity' => 1,
+                    ]
                 ]
-            ],
+                : [
+                    [
+                        'name' => $event->name,
+                        'price' => $event->ticket_price,
+                        'quantity' => $ticketCount,
+                    ]
+                ],
             'return_url' => route('payment.invoice', $referenceId),
             'expired_time' => (time() + (10 * 60)), // 10 minutes
-            'signature' => hash_hmac('sha256', $this->tripayController->tripay->tripay_merchant . $referenceId .  $hargaTotal, $this->tripayController->tripay->tripay_private)
+            'signature' => hash_hmac('sha256', $this->tripayController->tripay->tripay_merchant . $referenceId .  $totalPrice, $this->tripayController->tripay->tripay_private)
         ];
 
         try {
