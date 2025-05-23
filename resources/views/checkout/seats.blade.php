@@ -348,11 +348,57 @@
                                 <span>{{ $ticketCount }}</span>
                             </div>
 
+                            @if ($ticketCount > 5)
+                                <div class="flex justify-between text-sm bg-green-50 p-3 rounded border border-green-100">
+                                    <span class="text-green-700">Discount</span>
+                                    <span class="text-green-700 font-medium">
+                                        -Rp {{ number_format(50000 * $ticketCount, 0, ',', '.') }}
+                                    </span>
+                                </div>
+                                <div class="flex justify-between text-sm text-green-600">
+                                    <span>Rp 50.000 × {{ $ticketCount }} tickets</span>
+                                    <span>-Rp {{ number_format(50000 * $ticketCount, 0, ',', '.') }}</span>
+                                </div>
+                            @endif
+
                             <div class="border-t border-gray-200 pt-4 flex justify-between font-bold">
                                 <span>Total</span>
                                 <span>Rp {{ number_format($totalPrice, 0, ',', '.') }}</span>
                             </div>
                         </div>
+
+                        @if ($ticketCount <= 5)
+                            <div class="mt-4 bg-blue-50 border border-blue-100 p-4 rounded-lg">
+                                <div class="flex items-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mt-0.5 mr-2"
+                                        fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <div>
+                                        <p class="text-blue-700 font-medium">Special Offer!</p>
+                                        <p class="text-blue-600 text-sm mt-1">Buy more than 5 tickets and get Rp 50.000
+                                            discount per ticket!</p>
+                                    </div>
+                                </div>
+                            </div>
+                        @else
+                            <div class="mt-4 bg-green-50 border border-green-100 p-4 rounded-lg">
+                                <div class="flex items-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600 mt-0.5 mr-2"
+                                        fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    <div>
+                                        <p class="text-green-700 font-medium">Discount Applied!</p>
+                                        <p class="text-green-600 text-sm mt-1">You're saving Rp
+                                            {{ number_format(50000 * $ticketCount, 0, ',', '.') }} with our special offer!
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
 
                         <div class="mt-6 text-sm bg-yellow-50 border border-yellow-100 p-4 rounded-lg">
                             <div class="flex items-start">
