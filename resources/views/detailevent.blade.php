@@ -310,9 +310,29 @@
                             <div x-data="{
                                 ticketCount: 1,
                                 ticketPrice: {{ $event->ticket_price }},
+                                hasDiscount: false,
+                                discountAmount: 50000,
                             
                                 get total() {
+                                    if (this.ticketCount > 5) {
+                                        this.hasDiscount = true;
+                                        return this.ticketCount * (this.ticketPrice - this.discountAmount);
+                                    } else {
+                                        this.hasDiscount = false;
+                                        return this.ticketCount * this.ticketPrice;
+                                    }
+                                },
+                            
+                                get originalTotal() {
                                     return this.ticketCount * this.ticketPrice;
+                                },
+                            
+                                get savings() {
+                                    return this.originalTotal - this.total;
+                                },
+                            
+                                get discountPerTicket() {
+                                    return this.hasDiscount ? this.discountAmount : 0;
                                 },
                             
                                 increaseTickets() {
@@ -357,6 +377,33 @@
                                     </div>
                                 </div>
 
+                                <div x-show="hasDiscount" x-transition:enter="transition ease-out duration-300"
+                                    x-transition:enter-start="opacity-0 transform scale-95"
+                                    x-transition:enter-end="opacity-100 transform scale-100"
+                                    class="bg-green-50 border-l-4 border-green-500 p-4 rounded-md">
+                                    <div class="flex">
+                                        <div class="flex-shrink-0">
+                                            <i class="fas fa-tags text-green-600"></i>
+                                        </div>
+                                        <div class="ml-3">
+                                            <p class="text-sm text-green-700">
+                                                <span class="font-medium">Discount applied!</span> You're eligible for a Rp
+                                                50.000 discount per ticket when buying more than 5 tickets.
+                                            </p>
+                                            <p class="text-xs text-green-600 mt-1">
+                                                You're saving <span class="font-bold"
+                                                    x-text="formatCurrency(savings)"></span> in total
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div x-show="!hasDiscount"
+                                    class="text-sm text-blue-600 bg-blue-50 p-3 rounded-md flex items-start">
+                                    <i class="fas fa-info-circle text-blue-500 mr-2 mt-0.5"></i>
+                                    <span>Buy more than 5 tickets and get a Rp 50.000 discount on each ticket!</span>
+                                </div>
+
                                 <div class="border-t border-gray-200 pt-4 mb-6">
                                     <h3 class="font-medium mb-3">Order Summary</h3>
                                     <div class="space-y-2 text-sm">
@@ -367,6 +414,10 @@
                                         <div class="flex justify-between">
                                             <span class="text-gray-600">Jumlah tiket</span>
                                             <span x-text="ticketCount"></span>
+                                        </div>
+                                        <div class="flex justify-between text-green-600" x-show="hasDiscount">
+                                            <span>Discount (Rp 50.000 × <span x-text="ticketCount"></span>)</span>
+                                            <span>-<span x-text="formatCurrency(savings)"></span></span>
                                         </div>
                                         <div
                                             class="flex justify-between font-bold text-base pt-2 border-t border-gray-200 mt-2">
@@ -381,6 +432,9 @@
                                     @csrf
                                     <input type="hidden" name="ticket_count" x-model="ticketCount">
                                     <input type="hidden" name="total_price" x-model="total">
+                                    <input type="hidden" name="has_discount" x-model="hasDiscount">
+                                    <input type="hidden" name="discount_amount" value="50000">
+                                    <input type="hidden" name="original_price" x-model="originalTotal">
                                     <button type="submit"
                                         class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition flex items-center justify-center">
                                         Checkout <i class="fas fa-arrow-right ml-2"></i>
