@@ -140,7 +140,6 @@
                                         </div>
                                     </div>
                                 @endforeach
-
                                 <div class="mt-8 flex justify-between">
                                     <a href="{{ route('checkout.seats', $event->slug) }}"
                                         class="px-6 py-2 bg-gray-200 rounded-lg text-gray-700 font-medium hover:bg-gray-300 transition">
@@ -206,6 +205,25 @@
                                 <span>{{ $ticketCount }}</span>
                             </div>
 
+                            @php
+                                $originalPrice = $ticketCount * $event->ticket_price;
+                                $hasDiscount = $ticketCount > 5;
+                                $discountAmount = $hasDiscount ? 50000 * $ticketCount : 0;
+                            @endphp
+
+                            @if ($hasDiscount)
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Original Subtotal</span>
+                                    <span class="line-through text-gray-500">Rp
+                                        {{ number_format($originalPrice, 0, ',', '.') }}</span>
+                                </div>
+
+                                <div class="flex justify-between text-sm text-green-600 bg-green-50 p-2 rounded">
+                                    <span>Discount (Rp 50.000 × {{ $ticketCount }})</span>
+                                    <span>-Rp {{ number_format($discountAmount, 0, ',', '.') }}</span>
+                                </div>
+                            @endif
+
                             <div class="flex justify-between text-sm">
                                 <span class="text-gray-600">Subtotal</span>
                                 <span>Rp {{ number_format($totalPrice, 0, ',', '.') }}</span>
@@ -221,6 +239,25 @@
                                 <span id="total-with-fee">Rp {{ number_format($totalPrice, 0, ',', '.') }}</span>
                             </div>
                         </div>
+
+                        @if ($hasDiscount)
+                            <div class="mt-4 bg-green-50 border border-green-100 p-4 rounded-lg">
+                                <div class="flex items-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600 mt-0.5 mr-2"
+                                        fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    <div>
+                                        <p class="text-green-700 font-medium">Special Offer Applied!</p>
+                                        <p class="text-green-600 text-sm mt-1">
+                                            You've saved Rp {{ number_format($discountAmount, 0, ',', '.') }} with our Rp
+                                            50.000 discount per ticket for purchases of more than 5 tickets.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
 
                         <div class="mt-6" x-data="countdown()" x-init="start()">
                             <div class="bg-red-50 border border-red-100 p-4 rounded-lg text-sm">
